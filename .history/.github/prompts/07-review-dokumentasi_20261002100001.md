@@ -1,0 +1,1 @@
+Review implementasi untuk race condition, retry, disabled button, state error, dan kualitas test. Setelah review, isi `apps/mobile/docs/STATE_MANAGEMENT.md` dengan peta layer, diagram alur, bukti test/screenshot, prompt yang dipakai, serta perbaikan manual.

@@ -1,0 +1,1 @@
+Buat fondasi `apps/mobile`: pubspec Riverpod, model BillSession immutable, interface repository, implementasi in-memory untuk pengujian, serta ProviderScope dan app entrypoint.

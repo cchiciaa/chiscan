@@ -1,0 +1,1 @@
+Baca `Architecture.md`. Gunakan Flutter Material 3, Riverpod, Bahasa Indonesia, PascalCase untuk class/widget/model, camelCase untuk field dan method, serta pisahkan screen, provider, repository, validator, model, dan service. Jangan menambahkan komentar yang tidak perlu.

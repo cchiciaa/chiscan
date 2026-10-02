@@ -1,0 +1,1 @@
+Tulis widget test deterministik untuk enam kondisi: initial loading, data, empty, error retry, validasi form, dan loading submit dengan double tap. Gunakan fake repository yang bisa dikontrol.

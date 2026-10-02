@@ -1,0 +1,1 @@
+Analisis kebutuhan tanpa mengubah kode. Petakan dua fitur: dashboard sesi tagihan dan form buat sesi baru. Identifikasi enam kondisi UI, boundary provider/repository, dan test yang membuktikan tiap kondisi.

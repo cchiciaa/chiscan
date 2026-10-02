@@ -25,7 +25,7 @@ Target pengguna aplikasi ini berfokus pada kelompok masyarakat produktif dan ber
 2. **Pekerja Muda (*First Jobbers* & Profesional)**
    - **Karakteristik:** Sering makan siang bersama rekan kerja, *after-work dinner*, atau *gathering* tim. Membutuhkan solusi serba cepat, praktis, dan transparan tanpa mengganggu waktu kerja.
 3. **Komunitas & Pengelola Acara (*Group Event Organizers*)**
-   - **Karakteristik:** Kelompok hobbiis atau penyelenggara acara kecil yang sering melakukan transaksi bersama dan membutuhkan transparansi pencatatan biaya.
+   - **Karakteristik:** Kelompok penghobi atau penyelenggara acara kecil yang sering melakukan transaksi bersama dan membutuhkan transparansi pencatatan biaya.
 
 ---
 
@@ -87,7 +87,7 @@ Untuk memastikan proyek selesai dengan kualitas baik dalam batasan waktu 12 pert
 - ❌ **Integrasi Payment Gateway Real-Time:** Tidak menyediakan fitur auto-debit atau integrasi API pembayaran langsung (seperti Midtrans/Xendit).
 - ❌ **Autentikasi & Akun Pengguna Kompleks:** Tidak ada sistem pendaftaran (*register/login*), verifikasi OTP, atau manajemen profil pengguna berbasis cloud database.
 - ❌ **Konversi Mata Uang Asing (Multi-Currency):** Aplikasi hanya mendukung transaksi dalam mata uang Rupiah (IDR).
-- ❌ **Sinkronisasi Real-Time Multi-Device (Cloud Sync/WebSocket):** Data tagihan disimpan di tingkat lokal (*Client-side Local Storage*) dan tidak tersinkronisasi otomatis antar HP secara *real-time*.
+- ❌ **Sinkronisasi Real-Time Multi-Device (Cloud Sync/WebSocket):** Versi awal tidak menyediakan pembaruan otomatis antar perangkat secara *real-time*; sinkronisasi lintas perangkat bukan bagian dari target 12 pertemuan.
 
 ---
 

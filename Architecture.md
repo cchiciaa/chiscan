@@ -1,163 +1,224 @@
-Build a simple full-stack web application named **Smart Split Bill (ChiScan)**.
+# Smart Split Bill (ChiScan)
 
-Purpose:
-Help users (students, young professionals, and event organizers) easily split restaurant or cafe bills, calculate proportional tax, service charge, and discounts, handle shared items fairly, and generate clear payment summaries for each group member.
+Build a simple, full-stack web application named **Smart Split Bill (ChiScan)**.
 
-Use this stack:
+## Tujuan Aplikasi
 
-* Frontend: React + TypeScript + Vite + Tailwind CSS
-* Backend: Node.js + TypeScript + Express
+Aplikasi membantu pengguna membagi tagihan restoran atau kafe secara adil, cepat, dan akurat. Aplikasi menghitung subtotal setiap orang, pajak, biaya layanan, diskon, item yang dikonsumsi bersama, serta menghasilkan ringkasan pembayaran yang mudah dibagikan.
+
+Target utama aplikasi adalah mahasiswa atau pelajar, pekerja muda, profesional, komunitas, dan pengelola acara kecil.
+
+## Teknologi yang Digunakan
+
+* Frontend: Flutter dan Dart
+* Backend: Node.js, TypeScript, dan Express
 * Database: MySQL
 * ORM: Prisma
 * API style: REST API
-* Use Docker Compose for MySQL
-* Use `.env.example` for database URL and application configuration
+* Database lokal: Docker Compose untuk MySQL
+* Konfigurasi: `.env.example` untuk database URL dan konfigurasi aplikasi
+* Bahasa antarmuka: Bahasa Indonesia
 
-Code rules:
+## Aturan Kode
 
-* Do not add comments unless truly necessary.
-* Use PascalCase for all classes, types, interfaces, enums, React components, database models, API DTOs, and JSON property names.
-* Local variables may use camelCase.
-* Keep code lines below 150 characters where practical.
-* Use a clean and simple folder structure.
-* Do not add authentication in this first version. Assume single-host or guest-mode usage.
+* Jangan menambahkan komentar kecuali benar-benar diperlukan.
+* Gunakan PascalCase untuk class, type, interface, enum, widget Flutter, model database, dan API DTO.
+* Gunakan camelCase untuk variabel lokal, nama field JSON, dan method Dart.
+* Usahakan panjang baris kode tidak lebih dari 150 karakter.
+* Gunakan struktur folder yang sederhana dan mudah dipahami.
+* Versi pertama tidak menggunakan autentikasi, registrasi, login, OTP, atau akun pengguna berbasis cloud.
+* Mata uang yang didukung hanya Rupiah (IDR).
 
-Main entities:
+## Entitas Utama
 
-1. BillSession
+### BillSession
 
-   * Id
-   * Title
-   * HostName
-   * PaymentMethod
-   * AccountNumber
-   * SubtotalAmount
-   * TaxPercent
-   * TaxAmount
-   * ServicePercent
-   * ServiceAmount
-   * DiscountType
-   * DiscountValue
-   * DiscountAmount
-   * GrandTotalAmount
-   * CreatedAt
-   * UpdatedAt
+* `Id`
+* `Title`
+* `HostName`
+* `PaymentMethod`
+* `AccountNumber`
+* `SubtotalAmount`
+* `TaxPercent`
+* `TaxAmount`
+* `ServicePercent`
+* `ServiceAmount`
+* `DiscountType`
+* `DiscountValue`
+* `DiscountAmount`
+* `GrandTotalAmount`
+* `CreatedAt`
+* `UpdatedAt`
 
-2. Participant
+### Participant
 
-   * Id
-   * BillSessionId
-   * Name
-   * SubtotalAmount
-   * TaxAmount
-   * ServiceAmount
-   * DiscountAmount
-   * TotalAmount
-   * PaymentStatus
-   * CreatedAt
+* `Id`
+* `BillSessionId`
+* `Name`
+* `SubtotalAmount`
+* `TaxAmount`
+* `ServiceAmount`
+* `DiscountAmount`
+* `TotalAmount`
+* `PaymentStatus`
+* `CreatedAt`
 
-3. Item
+### Item
 
-   * Id
-   * BillSessionId
-   * Name
-   * Price
-   * Quantity
-   * TotalPrice
-   * CreatedAt
+* `Id`
+* `BillSessionId`
+* `Name`
+* `Price`
+* `Quantity`
+* `TotalPrice`
+* `CreatedAt`
 
-4. ItemParticipant
+### ItemParticipant
 
-   * Id
-   * ItemId
-   * ParticipantId
-   * SplitShare
-   * CalculatedPrice
+* `Id`
+* `ItemId`
+* `ParticipantId`
+* `SplitShare`
+* `CalculatedPrice`
 
-Enums:
+## Enum
 
-1. DiscountType
-   * `PERCENTAGE`
-   * `FLAT`
+### DiscountType
 
-2. PaymentStatus
-   * `PENDING`
-   * `PAID`
+* `PERCENTAGE`
+* `FLAT`
 
-Database & Calculation rules:
+### PaymentStatus
 
-* A Participant must be unique by `Name` within the same `BillSessionId`.
-* `ParticipantSubtotal` is calculated based on allocated items:
-  * For single consumption item: 100% item total price goes to the assigned participant.
-  * For shared item (N participants): item total price is divided equally by total split shares of assigned participants.
-* Tax, Service Charge, and Discount are calculated proportionally:
-  * `SubtotalRatio` = `ParticipantSubtotal / BillSession.SubtotalAmount`
-  * `ParticipantTaxAmount` = `SubtotalRatio * BillSession.TaxAmount`
-  * `ParticipantServiceAmount` = `SubtotalRatio * BillSession.ServiceAmount`
-  * `ParticipantDiscountAmount` = `SubtotalRatio * BillSession.DiscountAmount`
-  * `ParticipantTotalAmount` = `ParticipantSubtotal + ParticipantTaxAmount + ParticipantServiceAmount - ParticipantDiscountAmount`
-* Total sum of all `ParticipantTotalAmount` must exactly equal `GrandTotalAmount` of `BillSession` (Rp 0 discrepancy after rounding handling).
-* Use Prisma migrations and seed data with one example bill session, four participants, five items (including shared items), tax, service, and discount.
+* `PENDING`
+* `PAID`
 
-Backend features:
+## Aturan Database dan Kalkulasi
 
-1. CRUD BillSession
+* Nama `Participant` harus unik dalam satu `BillSessionId`.
+* `Item.TotalPrice` dihitung dari `Price * Quantity`.
+* Item pribadi memberikan 100% total harga kepada satu participant.
+* Item bersama dibagi berdasarkan total `SplitShare` participant yang dipilih.
+* `ParticipantSubtotal` dihitung dari seluruh item yang dialokasikan kepada participant.
+* Pajak, biaya layanan, dan diskon dibagi secara proporsional berdasarkan subtotal setiap participant.
+* Gunakan rumus berikut:
 
-   * Create, list, detail, update, delete bill session.
+```text
+SubtotalRatio = ParticipantSubtotal / BillSession.SubtotalAmount
+ParticipantTaxAmount = SubtotalRatio * BillSession.TaxAmount
+ParticipantServiceAmount = SubtotalRatio * BillSession.ServiceAmount
+ParticipantDiscountAmount = SubtotalRatio * BillSession.DiscountAmount
+ParticipantTotalAmount = ParticipantSubtotal + ParticipantTaxAmount
+  + ParticipantServiceAmount - ParticipantDiscountAmount
+```
 
-2. CRUD Participant
+* `TaxAmount` dihitung dari `SubtotalAmount * TaxPercent / 100`.
+* `ServiceAmount` dihitung dari `SubtotalAmount * ServicePercent / 100`.
+* Diskon persentase dihitung dari subtotal, sedangkan diskon flat menggunakan nominal yang dimasukkan.
+* `GrandTotalAmount` harus sama dengan `SubtotalAmount + TaxAmount + ServiceAmount - DiscountAmount`.
+* Total seluruh `ParticipantTotalAmount` harus sama persis dengan `GrandTotalAmount` setelah pembulatan.
+* Sisa pembulatan harus dialokasikan secara deterministik agar tidak ada selisih rupiah.
+* Hindari nilai `NaN`, pembagian dengan nol, harga negatif, kuantitas nol, dan diskon yang melebihi subtotal.
 
-   * Create, list, detail, update, delete participant inside a bill session.
-   * Toggle participant payment status (`PENDING` / `PAID`).
+## Fitur Backend
 
-3. CRUD Item & Participant Allocation
+### Manajemen Sesi Tagihan
 
-   * Add, edit, delete item in a bill session.
-   * Assign or unassign participants to an item (single or shared).
+* Membuat sesi tagihan baru dengan nama tempat atau event.
+* Menampilkan daftar sesi tagihan.
+* Melihat detail sesi tagihan.
+* Mengubah data sesi tagihan.
+* Menghapus sesi tagihan.
 
-4. Calculation Engine & Auto Recalculation
+### Manajemen Participant
 
-   * Endpoint or automated service to recalculate all participant totals whenever items, item allocations, tax %, service %, or discounts change.
-   * Handle rounding residue by adjusting leftover 1-2 rupiah to maintain exact match with `GrandTotalAmount`.
+* Menambahkan participant ke sesi tagihan.
+* Menampilkan daftar participant.
+* Mengubah nama participant.
+* Menghapus participant.
+* Mengubah status pembayaran menjadi `PENDING` atau `PAID`.
 
-5. Summary & Share Generator API
+### Manajemen Item dan Alokasi
 
-   * Return a formatted text summary ready to be copied and pasted to WhatsApp or Telegram.
-   * Return individual bill breakdown for each participant.
+* Menambahkan item dengan nama, harga satuan, dan kuantitas.
+* Mengubah item.
+* Menghapus item.
+* Mengalokasikan item kepada satu participant.
+* Mengalokasikan item kepada beberapa participant sebagai item bersama.
+* Mengubah atau menghapus alokasi participant pada item.
 
-Frontend pages:
+### Calculation Engine
 
-1. Dashboard / Session List
+* Menghitung subtotal sesi secara otomatis dari seluruh item.
+* Menghitung pajak, biaya layanan, dan diskon.
+* Menghitung tagihan setiap participant secara proporsional.
+* Menghitung ulang setelah item, alokasi, pajak, biaya layanan, atau diskon berubah.
+* Menangani sisa pembulatan agar total selalu konsisten.
 
-   * Summary cards: total active sessions, total participants, total amount processed, pending payments count.
-   * Table/List showing bill sessions, title, host name, grand total, participant count, and creation date.
-   * Button: `Buat Sesi Baru`.
+### Ringkasan dan Pembayaran
 
-2. Bill Session Builder & Detail
+* Mengembalikan rincian subtotal, pajak, layanan, diskon, dan total setiap participant.
+* Menyimpan metode pembayaran dan rekening atau informasi QRIS host.
+* Menghasilkan teks ringkasan yang siap disalin ke WhatsApp atau Telegram.
 
-   * Header showing session title, subtotal, tax, service, discount, and grand total.
-   * Section 1: Participant Management (Add, edit, delete participants).
-   * Section 2: Item Management & Allocation Form (Add item name, price, quantity, select consumers).
-   * Section 3: Additional Fees Form (Tax %, Service %, Discount Type & Value).
+## Layar Aplikasi Flutter
 
-3. Individual Bill Summary & Payment Tracker
+Prototype UI/UX dibuat terlebih dahulu untuk memvalidasi alur utama aplikasi. Prototype dapat dirancang di Figma atau dibuat langsung sebagai mock UI Flutter.
 
-   * Participant breakdown cards showing Subtotal, Tax, Service, Discount, and Final Amount.
-   * Payment status badge (`PENDING` / `PAID`) with toggle button.
-   * Host payment account card (Bank Name, Account Number / QRIS info).
-   * Button: `Salin Ringkasan Tagihan (WhatsApp)`.
+Prototype minimum mencakup:
 
-UI requirements:
+* Dashboard daftar sesi tagihan.
+* Form pembuatan dan pengaturan sesi tagihan.
+* Halaman detail sesi untuk mengelola participant dan item.
+* Halaman ringkasan tagihan individu dan status pembayaran.
+* Dialog atau halaman pengaturan informasi pembayaran host.
 
-* Use Indonesian language for all labels, buttons, messages, and validation.
-* Create a clean, responsive dashboard using Tailwind CSS.
-* Simple tables, cards, badges, forms, confirmation dialog before delete, and empty states.
-* Status badge colors:
-  * Paid: green
-  * Pending: orange / red
-* Do not add charts in the first version.
+Struktur aplikasi Flutter harus memisahkan halaman, widget reusable, model data, service/API, dan routing agar mudah dikembangkan.
 
-Required API routes:
+### Dashboard Sesi Tagihan
+
+* Menampilkan daftar sesi tagihan.
+* Menampilkan judul, nama host, total tagihan, jumlah participant, status pembayaran, dan tanggal pembuatan.
+* Menyediakan tombol `Buat Sesi Baru`.
+* Menampilkan empty state jika belum ada sesi.
+
+### Builder dan Detail Sesi
+
+* Header berisi judul sesi, subtotal, pajak, layanan, diskon, dan grand total.
+* Form manajemen participant.
+* Form item berisi nama item, harga, kuantitas, dan participant yang mengonsumsi.
+* Form pajak, biaya layanan, dan diskon.
+* Dialog konfirmasi sebelum menghapus data.
+* Pesan validasi dan error dalam Bahasa Indonesia.
+
+### Ringkasan Individu dan Pelacak Pembayaran
+
+* Kartu rincian tagihan setiap participant.
+* Badge status `PAID` atau `PENDING`.
+* Tombol untuk mengubah status pembayaran.
+* Kartu informasi pembayaran host.
+* Tombol `Salin Ringkasan Tagihan`.
+
+## Persyaratan UI
+
+* Semua label, tombol, pesan, validasi, dan empty state menggunakan Bahasa Indonesia.
+* Gunakan Flutter Material 3 dengan layout responsif, tabel atau list, kartu, badge, formulir, dan dialog konfirmasi.
+* Gunakan package HTTP atau Dio untuk memanggil REST API.
+* Gunakan state management sederhana yang konsisten, seperti Provider, Riverpod, atau BLoC.
+* Sediakan loading state, error state, empty state, dan feedback sukses pada setiap alur utama.
+* Gunakan warna hijau untuk `PAID` dan oranye atau merah untuk `PENDING`.
+* Jangan menambahkan chart pada versi pertama.
+* Prioritaskan alur input yang dapat diselesaikan kurang dari 3 menit untuk 5 item dan 4 participant.
+
+## Routing dan Reusable Widget
+
+* Gunakan routing terpusat untuk mengatur perpindahan antara dashboard, form sesi, detail sesi, dan ringkasan pembayaran.
+* Definisikan nama route dalam satu file agar navigasi tidak menggunakan string yang tersebar di banyak halaman.
+* Buat reusable widget untuk tombol utama, input field, app bar, kartu ringkasan, badge status, dialog konfirmasi, dan empty state.
+* Widget reusable harus menerima data dan callback melalui parameter agar dapat digunakan di beberapa screen.
+* Pisahkan tampilan, state, dan pemanggilan API agar screen tetap mudah diuji dan dirawat.
+
+## API Routes
 
 * `GET /api/sessions`
 * `POST /api/sessions`
@@ -176,59 +237,84 @@ Required API routes:
 * `POST /api/sessions/:BillSessionId/calculate`
 * `GET /api/sessions/:BillSessionId/summary`
 
-Deliverables:
+## Struktur Project
 
-* Complete frontend and backend source code.
-* Prisma schema, migration, and seed data.
-* Docker Compose file for MySQL.
-* `.env.example`.
-* README with installation, database migration, seed, frontend/backend startup, Docker usage, and configuration.
-* Ensure the application builds successfully and all basic CRUD plus split bill calculation engine work.
-
-Project structure:
-
-* Use a TypeScript monorepo with npm workspaces.
-* Structure:
+Gunakan struktur project yang memisahkan aplikasi Flutter, backend API, dan kontrak API:
 
 ```text
 smart-split-bill/
   apps/
-    web/
+    mobile/
     api/
   packages/
-    shared/
+    api-contract/
 ```
 
-Shared package requirements:
+`apps/mobile` adalah project Flutter/Dart dan `apps/api` adalah project Node.js/TypeScript.
 
-* Create `packages/shared` as `@smart-split-bill/shared`.
-* Store all shared domain models, enums, API response types, and shared constants here.
-* Both `apps/web` and `apps/api` must import shared types from this package.
-* Do not duplicate domain model definitions between frontend and backend.
+## Kontrak API dan Model
 
-Example shared files:
+Karena Flutter/Dart tidak dapat mengimpor package TypeScript secara langsung, gunakan kontrak REST sebagai sumber kebenaran bersama.
+
+* Simpan OpenAPI atau dokumentasi JSON schema di `packages/api-contract`.
+* Model Dart untuk `BillSession`, `Participant`, `Item`, `ItemParticipant`, `DiscountType`, dan `PaymentStatus` berada di `apps/mobile/lib/models`.
+* DTO TypeScript untuk API berada di `apps/api/src/dto`.
+* Nama property JSON REST harus konsisten antara Flutter dan backend.
+* Jangan mengimpor Prisma type ke Flutter.
+
+Contoh struktur Flutter:
 
 ```text
-packages/shared/src/
+apps/mobile/lib/
+  main.dart
+  app.dart
+  routes/
+    app_routes.dart
+  screens/
+    dashboard_screen.dart
+    bill_session_screen.dart
+    summary_screen.dart
+  widgets/
+    primary_button.dart
+    app_text_field.dart
+    summary_card.dart
+    status_badge.dart
+    confirmation_dialog.dart
   models/
-    BillSession.ts
-    Participant.ts
-    Item.ts
-    ItemParticipant.ts
-  enums/
-    DiscountType.ts
-    PaymentStatus.ts
-  dto/
-    CalculateResponse.ts
-    SummaryResponse.ts
-  index.ts
+    bill_session_model.dart
+    participant_model.dart
+    item_model.dart
+    item_participant_model.dart
+  services/
+    api_client.dart
+    bill_session_service.dart
 ```
 
-Model rules:
+## Aturan Shared Model
 
-* Define shared TypeScript interfaces or types only once in `packages/shared`.
-* Example: `BillSession`, `Participant`, `Item`, `ItemParticipant`, `DiscountType`, and `PaymentStatus` must be imported by both frontend and backend from `@smart-split-bill/shared`.
-* Prisma models remain in the backend because they are database-specific.
-* The backend maps Prisma entities to shared API models before returning responses.
-* The frontend must not import Prisma types.
-* Configure TypeScript paths, workspace dependencies, build scripts, and development scripts correctly so all packages compile successfully.
+* Definisikan model Dart dan DTO TypeScript berdasarkan kontrak API yang sama.
+* Gunakan enum Dart untuk `DiscountType` dan `PaymentStatus`.
+* Gunakan model immutable atau pola serialisasi JSON yang konsisten di Flutter.
+* Model Prisma tetap berada di backend karena bersifat spesifik terhadap database.
+* Backend memetakan entitas Prisma ke API model bersama sebelum mengembalikan response.
+* Flutter tidak boleh mengimpor type Prisma atau kode TypeScript.
+* Konfigurasikan `pubspec.yaml`, environment API URL, script Flutter, dan script backend agar aplikasi dapat dijalankan dan dikompilasi.
+
+## Seed dan Deliverable
+
+* Gunakan Prisma migration.
+* Sediakan seed dengan satu contoh sesi tagihan, empat participant, lima item, termasuk item bersama, pajak, biaya layanan, dan diskon.
+* Sediakan Docker Compose untuk MySQL.
+* Sediakan `.env.example` untuk database URL dan konfigurasi aplikasi.
+* Sediakan README berisi instalasi Flutter, migrasi database, seed, menjalankan aplikasi Flutter dan backend, penggunaan Docker, dan konfigurasi API URL.
+* Pastikan build berhasil dan CRUD dasar serta calculation engine dapat digunakan.
+
+## Batasan Versi Pertama
+
+Fitur berikut tidak dikerjakan dalam versi pertama:
+
+* Scan struk otomatis menggunakan OCR atau AI camera parsing.
+* Integrasi payment gateway real-time seperti Midtrans atau Xendit.
+* Registrasi, login, OTP, dan akun pengguna kompleks.
+* Multi-currency atau konversi mata uang asing.
+* Sinkronisasi real-time antar perangkat menggunakan cloud sync atau WebSocket.
