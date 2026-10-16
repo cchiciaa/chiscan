@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'screens/dashboard_screen.dart';
+import 'routes/app_routes.dart';
 
 class ChiScanApp extends StatelessWidget {
   const ChiScanApp({super.key});
@@ -10,7 +10,8 @@ class ChiScanApp extends StatelessWidget {
     return MaterialApp(
       title: 'ChiScan',
       theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.teal),
-      home: const DashboardScreen(),
+      initialRoute: AppRoutes.dashboard,
+      onGenerateRoute: AppRoutes.onGenerateRoute,
     );
   }
 }

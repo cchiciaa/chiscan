@@ -7,10 +7,10 @@
 | Screen | `apps/mobile/lib/screens/` | Merender state dan menerima input pengguna |
 | Widget | `apps/mobile/lib/widgets/` | Komponen UI reusable; slice ini memakai widget Material langsung |
 | Model | `apps/mobile/lib/models/` | Model immutable `BillSession` |
-| Repository | `apps/mobile/lib/repositories/` | Kontrak akses data dan implementasi in-memory |
+| Repository | `apps/mobile/lib/repositories/` | Kontrak akses data, local persistence, API, dan in-memory test double |
 | Validator | `apps/mobile/lib/validators/` | Aturan validasi form |
 | State management | `apps/mobile/lib/providers/` | `AsyncNotifier` untuk fetch, retry, submit, dan guard double tap |
-| Service | `apps/mobile/lib/services/` | Disiapkan sebagai boundary API pada pengembangan berikutnya |
+| Service | `apps/mobile/lib/services/` | HTTP API client dan adapter advanced feature |
 
 ## Alur Fitur
 

@@ -1,17 +1,26 @@
-# chiscan_mobile
+# ChiScan Mobile
 
-A new Flutter project.
+Aplikasi Flutter untuk Smart Split Bill. Aplikasi mendukung pembuatan sesi
+tagihan, penyimpanan lokal, state management Riverpod, dan boundary integrasi
+REST API.
 
-## Getting Started
+## Menjalankan
 
-This project is a starting point for a Flutter application.
+Pastikan Flutter SDK tersedia, lalu dari folder ini jalankan:
 
-A few resources to get you started if this is your first Flutter project:
+```text
+flutter pub get
+flutter test
+flutter run
+```
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+Tanpa backend, aplikasi menggunakan repository lokal berbasis
+`shared_preferences`. Integrasi API menggunakan base URL default
+`http://localhost:3000/api` dan dapat dikonfigurasi melalui konstruktor
+`BillSessionApiClient`.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Dokumentasi
+
+- Arsitektur dan batasan proyek: [../../Architecture.md](../../Architecture.md)
+- Panduan reviewer P4-P6: [../../panduan-reviewer.md](../../panduan-reviewer.md)
+- Peta state management: [docs/STATE_MANAGEMENT.md](docs/STATE_MANAGEMENT.md)
