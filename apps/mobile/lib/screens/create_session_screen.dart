@@ -5,6 +5,7 @@ import '../models/bill_session.dart';
 import '../providers/advanced_features_provider.dart';
 import '../providers/bill_session_provider.dart';
 import '../validators/bill_session_validator.dart';
+import '../widgets/adaptive_container.dart';
 
 class CreateSessionScreen extends ConsumerStatefulWidget {
   const CreateSessionScreen({super.key, this.sessionToEdit});
@@ -45,13 +46,17 @@ class _CreateSessionScreenState extends ConsumerState<CreateSessionScreen> {
     if (result.isSuccess && result.location != null) {
       _titleController.text = result.location!.name;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lokasi terdeteksi: ${result.location!.name}')),
+        SnackBar(
+          content: Text('Lokasi terdeteksi: ${result.location!.name}'),
+          behavior: SnackBarBehavior.floating,
+        ),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(result.errorMessage ?? 'Gagal mendeteksi lokasi.'),
           backgroundColor: Theme.of(context).colorScheme.error,
+          behavior: SnackBarBehavior.floating,
         ),
       );
     }
@@ -68,6 +73,7 @@ class _CreateSessionScreenState extends ConsumerState<CreateSessionScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Struk berhasil dipindai: ${result.merchantName} (Total Rp ${result.totalAmount})'),
+          behavior: SnackBarBehavior.floating,
         ),
       );
     } else {
@@ -75,6 +81,7 @@ class _CreateSessionScreenState extends ConsumerState<CreateSessionScreen> {
         SnackBar(
           content: Text(result.errorMessage ?? 'Gagal memindai struk.'),
           backgroundColor: Theme.of(context).colorScheme.error,
+          behavior: SnackBarBehavior.floating,
         ),
       );
     }
@@ -87,7 +94,17 @@ class _CreateSessionScreenState extends ConsumerState<CreateSessionScreen> {
           hostName: _hostController.text,
           id: widget.sessionToEdit?.id,
         );
-    if (success && mounted) Navigator.of(context).pop();
+    if (success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(widget.sessionToEdit != null
+              ? 'Sesi "${_titleController.text}" berhasil diperbarui!'
+              : 'Sesi "${_titleController.text}" berhasil dibuat!'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      Navigator.of(context).pop();
+    }
   }
 
   @override
@@ -98,69 +115,193 @@ class _CreateSessionScreenState extends ConsumerState<CreateSessionScreen> {
 
     return Scaffold(
       appBar: AppBar(title: Text(isEditing ? 'Ubah Sesi Tagihan' : 'Buat Sesi Baru')),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(20),
-          children: [
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                ActionChip(
-                  key: const Key('scan-receipt-button'),
-                  avatar: _isScanningReceipt
-                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                      : const Icon(Icons.camera_alt, size: 18),
-                  label: const Text('Pindai Struk (Kamera)'),
-                  onPressed: _isScanningReceipt ? null : _handleScanReceipt,
-                ),
-                ActionChip(
-                  key: const Key('detect-location-button'),
-                  avatar: _isDetectingLocation
-                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                      : const Icon(Icons.my_location, size: 18),
-                  label: const Text('Deteksi Lokasi (GPS)'),
-                  onPressed: _isDetectingLocation ? null : _handleDetectLocation,
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              key: const Key('session-title-field'),
-              controller: _titleController,
-              decoration: const InputDecoration(
-                labelText: 'Nama tempat atau event',
-                border: OutlineInputBorder(),
+      body: SafeArea(
+        child: GestureDetector(
+          onTap: () => FocusScope.of(context).unfocus(),
+          behavior: HitTestBehavior.opaque,
+          child: AdaptiveContainer(
+            maxWidth: 640,
+            child: Form(
+              key: _formKey,
+              child: ListView(
+                keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                children: [
+                  Semantics(
+                    label: 'Fitur otomatisasi pendeteksian data',
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        Semantics(
+                          button: true,
+                          label: 'Pindai struk belanja dengan kamera',
+                          child: ActionChip(
+                            key: const Key('scan-receipt-button'),
+                            avatar: _isScanningReceipt
+                                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                                : const Icon(Icons.camera_alt, size: 18),
+                            label: const Text('Pindai Struk (Kamera)'),
+                            tooltip: 'Pindai struk belanja dengan kamera perangkat',
+                            onPressed: _isScanningReceipt || _isDetectingLocation || submitting ? null : _handleScanReceipt,
+                          ),
+                        ),
+                        Semantics(
+                          button: true,
+                          label: 'Deteksi restoran terdekat melalui GPS',
+                          child: ActionChip(
+                            key: const Key('detect-location-button'),
+                            avatar: _isDetectingLocation
+                                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                                : const Icon(Icons.my_location, size: 18),
+                            label: const Text('Deteksi Lokasi (GPS)'),
+                            tooltip: 'Deteksi restoran di sekitar posisi GPS Anda',
+                            onPressed: _isDetectingLocation || _isScanningReceipt || submitting ? null : _handleDetectLocation,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (_isScanningReceipt) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.5),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'Sedang membuka kamera dan menganalisis struk...',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Theme.of(context).colorScheme.onPrimaryContainer,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  if (_isDetectingLocation) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.secondaryContainer.withOpacity(0.5),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'Sedang menghubungkan ke GPS dan mencari nama restoran...',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Theme.of(context).colorScheme.onSecondaryContainer,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 20),
+                  TextFormField(
+                    key: const Key('session-title-field'),
+                    controller: _titleController,
+                    scrollPadding: const EdgeInsets.only(bottom: 140),
+                    textInputAction: TextInputAction.next,
+                    decoration: const InputDecoration(
+                      labelText: 'Nama tempat atau event',
+                      hintText: 'Misal: Kopi Kenangan, Sederhana Bintaro',
+                      helperText: 'Wajib diisi sebagai judul sesi tagihan',
+                      prefixIcon: Icon(Icons.place_outlined),
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) => validateBillSession(title: value ?? '', hostName: 'valid').titleError,
+                  ),
+                  const SizedBox(height: 18),
+                  TextFormField(
+                    key: const Key('host-name-field'),
+                    controller: _hostController,
+                    scrollPadding: const EdgeInsets.only(bottom: 140),
+                    textInputAction: TextInputAction.done,
+                    onFieldSubmitted: (_) => _submit(),
+                    decoration: const InputDecoration(
+                      labelText: 'Nama host',
+                      hintText: 'Misal: Nadia, Budi, Ahmad',
+                      helperText: 'Nama orang yang menalangi atau bertanggung jawab',
+                      prefixIcon: Icon(Icons.person_outline),
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) => validateBillSession(title: 'valid', hostName: value ?? '').hostNameError,
+                  ),
+                  if (submitError != null) ...[
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.errorContainer,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.error_outline, color: Theme.of(context).colorScheme.error, size: 20),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              isEditing ? 'Sesi gagal diperbarui. Coba lagi.' : 'Sesi gagal dibuat. Coba lagi.',
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.onErrorContainer,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 28),
+                  Semantics(
+                    button: true,
+                    label: isEditing ? 'Perbarui sesi tagihan' : 'Simpan sesi tagihan',
+                    child: SizedBox(
+                      height: 48,
+                      child: FilledButton(
+                        key: const Key('create-session-button'),
+                        onPressed: submitting ? null : _submit,
+                        child: submitting
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                              )
+                            : Text(isEditing ? 'Perbarui Sesi' : 'Simpan Sesi'),
+                      ),
+                    ),
+                  ),
+                  if (submitting) ...[
+                    const SizedBox(height: 12),
+                    const Center(
+                      child: Text(
+                        'Menyimpan data ke backend, mohon tunggu...',
+                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
+                    ),
+                  ],
+                ],
               ),
-              validator: (value) => validateBillSession(title: value ?? '', hostName: 'valid').titleError,
             ),
-            const SizedBox(height: 16),
-            TextFormField(
-              key: const Key('host-name-field'),
-              controller: _hostController,
-              decoration: const InputDecoration(
-                labelText: 'Nama host',
-                border: OutlineInputBorder(),
-              ),
-              validator: (value) => validateBillSession(title: 'valid', hostName: value ?? '').hostNameError,
-            ),
-            if (submitError != null) ...[
-              const SizedBox(height: 16),
-              Text(
-                isEditing ? 'Sesi gagal diperbarui. Coba lagi.' : 'Sesi gagal dibuat. Coba lagi.',
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-              ),
-            ],
-            const SizedBox(height: 24),
-            FilledButton(
-              key: const Key('create-session-button'),
-              onPressed: submitting ? null : _submit,
-              child: submitting
-                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                  : Text(isEditing ? 'Perbarui Sesi' : 'Simpan Sesi'),
-            ),
-          ],
+          ),
         ),
       ),
     );

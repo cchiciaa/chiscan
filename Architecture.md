@@ -76,7 +76,11 @@ membuat `BillSessionApiClient`.
 3. **P6 API & Vertical Slice**: API client menyediakan GET, POST, PUT, dan
    DELETE untuk `/api/sessions`, dengan parsing model dan penanganan error.
 4. **P7 MVP**: navigasi dashboard-form-detail, ringkasan sesi, salin ringkasan,
-   serta adapter kamera, lokasi, dan notifikasi untuk alur demo.
+5. **P8 / UI & UX Quality**:
+   - **01 Layout Adaptif**: `AdaptiveContainer` memastikan tampilan proporsional pada layar ponsel sempit (320px) maupun tablet/desktop lebar (1024px+).
+   - **02 Keyboard-Safe UI**: `ListView` dengan `keyboardDismissBehavior: onDrag`, `scrollPadding: 140`, `TextInputAction.next/done`, dan penutup keyboard otomatis saat area luar ditekan.
+   - **03 Aksesibilitas Dasar (A11y)**: Pemanfaatan `Semantics` label untuk screen reader, target sentuh nyaman (min 48dp), dan teks bantuan/hint pada form.
+   - **04 Feedback Aksi**: Status visual instan saat aksi berlangsung (banner progres kamera & GPS, spinner simpan anti double-tap, floating snackbar, dan pull-to-refresh).
 
 ## Batasan yang Disengaja
 

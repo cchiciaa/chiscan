@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/bill_session.dart';
 import '../providers/advanced_features_provider.dart';
+import '../widgets/adaptive_container.dart';
 
 class SessionDetailScreen extends ConsumerStatefulWidget {
   const SessionDetailScreen({super.key, required this.session});
@@ -41,13 +42,29 @@ class _SessionDetailScreenState extends ConsumerState<SessionDetailScreen> {
 
     if (result.isSuccess && result.notification != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Notifikasi berhasil dikirim: ${result.notification!.title}')),
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.check_circle_outline, color: Colors.white, size: 20),
+              const SizedBox(width: 8),
+              Expanded(child: Text('Notifikasi berhasil dikirim: ${result.notification!.title}')),
+            ],
+          ),
+          behavior: SnackBarBehavior.floating,
+        ),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(result.errorMessage ?? 'Gagal mengirim notifikasi.'),
+          content: Row(
+            children: [
+              const Icon(Icons.error_outline, color: Colors.white, size: 20),
+              const SizedBox(width: 8),
+              Expanded(child: Text(result.errorMessage ?? 'Gagal mengirim notifikasi.')),
+            ],
+          ),
           backgroundColor: Theme.of(context).colorScheme.error,
+          behavior: SnackBarBehavior.floating,
         ),
       );
     }
@@ -67,7 +84,16 @@ Silakan transfer ke rekening host. Terima kasih!
 
     Clipboard.setData(ClipboardData(text: summary));
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Ringkasan tagihan disalin ke clipboard!')),
+      const SnackBar(
+        content: Row(
+          children: [
+            Icon(Icons.assignment_turned_in, color: Colors.white, size: 20),
+            SizedBox(width: 8),
+            Expanded(child: Text('Ringkasan tagihan disalin ke clipboard!')),
+          ],
+        ),
+        behavior: SnackBarBehavior.floating,
+      ),
     );
   }
 
@@ -77,84 +103,122 @@ Silakan transfer ke rekening host. Terima kasih!
 
     return Scaffold(
       appBar: AppBar(title: Text(widget.session.title)),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Card(
-            color: Theme.of(context).colorScheme.primaryContainer,
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Total Tagihan', style: Theme.of(context).textTheme.titleSmall),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Rp $_grandTotal',
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.onPrimaryContainer,
+      body: SafeArea(
+        child: AdaptiveContainer(
+          maxWidth: 720,
+          child: ListView(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+            children: [
+              Card(
+                elevation: 2,
+                color: Theme.of(context).colorScheme.primaryContainer,
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Semantics(
+                    label: 'Total tagihan Rp $_grandTotal, estimasi Rp $perPerson per orang, host ${widget.session.hostName}',
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Total Tagihan', style: Theme.of(context).textTheme.titleSmall),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Rp $_grandTotal',
+                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.onPrimaryContainer,
+                              ),
                         ),
+                        const Divider(height: 28),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Host: ${widget.session.hostName}',
+                              style: const TextStyle(fontWeight: FontWeight.w500),
+                            ),
+                            Text(
+                              'Estimasi: Rp $perPerson / orang',
+                              style: const TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                  const Divider(height: 24),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('Host: ${widget.session.hostName}'),
-                      Text('Estimasi: Rp $perPerson / orang', style: const TextStyle(fontWeight: FontWeight.w600)),
-                    ],
+                ),
+              ),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Expanded(
+                    child: SizedBox(
+                      height: 48,
+                      child: FilledButton.icon(
+                        key: const Key('send-detail-notification-button'),
+                        onPressed: _sendNotification,
+                        icon: const Icon(Icons.notifications_active),
+                        label: const Text('Kirim Pengingat'),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: SizedBox(
+                      height: 48,
+                      child: OutlinedButton.icon(
+                        key: const Key('copy-summary-button'),
+                        onPressed: _copySummary,
+                        icon: const Icon(Icons.copy),
+                        label: const Text('Salin WA'),
+                      ),
+                    ),
                   ),
                 ],
               ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: FilledButton.icon(
-                  key: const Key('send-detail-notification-button'),
-                  onPressed: _sendNotification,
-                  icon: const Icon(Icons.notifications_active),
-                  label: const Text('Kirim Pengingat'),
+              const SizedBox(height: 28),
+              Text('Peserta Tagihan (${_participants.length})', style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 8),
+              ..._participants.map(
+                (p) => Card(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  child: ListTile(
+                    dense: true,
+                    leading: const CircleAvatar(
+                      radius: 16,
+                      child: Icon(Icons.person_outline, size: 18),
+                    ),
+                    title: Text(p, style: const TextStyle(fontWeight: FontWeight.w500)),
+                    trailing: Semantics(
+                      label: p.contains('Host') ? 'Status pembayaran lunas' : 'Status pembayaran menunggu transfer',
+                      child: Chip(
+                        label: Text(p.contains('Host') ? 'PAID' : 'PENDING'),
+                        backgroundColor: p.contains('Host') ? Colors.green.shade100 : Colors.orange.shade100,
+                      ),
+                    ),
+                  ),
                 ),
               ),
-              const SizedBox(width: 8),
-              OutlinedButton.icon(
-                key: const Key('copy-summary-button'),
-                onPressed: _copySummary,
-                icon: const Icon(Icons.copy),
-                label: const Text('Salin WA'),
+              const SizedBox(height: 20),
+              Text('Item Pesanan', style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 8),
+              ..._items.map(
+                (item) => Card(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  child: ListTile(
+                    dense: true,
+                    leading: const Icon(Icons.restaurant_menu),
+                    title: Text(item['name'] as String, style: const TextStyle(fontWeight: FontWeight.w500)),
+                    subtitle: Text('${item['qty']}x @ Rp ${item['price']}'),
+                    trailing: Text(
+                      'Rp ${(item['qty'] as int) * (item['price'] as int)}',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 24),
-          Text('Peserta Tagihan (${_participants.length})', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
-          ..._participants.map(
-            (p) => ListTile(
-              dense: true,
-              leading: const Icon(Icons.person_outline),
-              title: Text(p),
-              trailing: Chip(
-                label: Text(p.contains('Host') ? 'PAID' : 'PENDING'),
-                backgroundColor: p.contains('Host') ? Colors.green.shade100 : Colors.orange.shade100,
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text('Item Pesanan', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
-          ..._items.map(
-            (item) => ListTile(
-              dense: true,
-              leading: const Icon(Icons.restaurant_menu),
-              title: Text(item['name'] as String),
-              subtitle: Text('${item['qty']}x @ Rp ${item['price']}'),
-              trailing: Text('Rp ${(item['qty'] as int) * (item['price'] as int)}'),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
