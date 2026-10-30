@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/user_profile.dart';
 import '../providers/profile_provider.dart';
+import '../utils/ui_feedback.dart';
 import '../validators/profile_validator.dart';
 
 /// ProfileForm: Bertanggung jawab murni pada INPUT dan STATUS UI
@@ -62,12 +63,10 @@ class _ProfileFormState extends ConsumerState<ProfileForm> {
         );
 
     if (success && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          key: Key('profile-save-success-snackbar'),
-          content: Text('Profil berhasil disimpan dan diperbarui!'),
-          behavior: SnackBarBehavior.floating,
-        ),
+      UiFeedback.showSuccess(
+        context,
+        'Profil berhasil disimpan dan diperbarui!',
+        key: const Key('profile-save-success-snackbar'),
       );
       widget.onSavedSuccessfully?.call();
     }

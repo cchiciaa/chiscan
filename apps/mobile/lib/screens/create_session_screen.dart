@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/bill_session.dart';
 import '../providers/advanced_features_provider.dart';
 import '../providers/bill_session_provider.dart';
+import '../utils/ui_feedback.dart';
 import '../validators/bill_session_validator.dart';
 import '../widgets/adaptive_container.dart';
 
@@ -45,20 +46,9 @@ class _CreateSessionScreenState extends ConsumerState<CreateSessionScreen> {
 
     if (result.isSuccess && result.location != null) {
       _titleController.text = result.location!.name;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Lokasi terdeteksi: ${result.location!.name}'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      UiFeedback.showSuccess(context, 'Lokasi terdeteksi: ${result.location!.name}');
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result.errorMessage ?? 'Gagal mendeteksi lokasi.'),
-          backgroundColor: Theme.of(context).colorScheme.error,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      UiFeedback.showError(context, result.errorMessage ?? 'Gagal mendeteksi lokasi.');
     }
   }
 
@@ -70,20 +60,12 @@ class _CreateSessionScreenState extends ConsumerState<CreateSessionScreen> {
 
     if (result.isSuccess && result.merchantName != null) {
       _titleController.text = result.merchantName!;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Struk berhasil dipindai: ${result.merchantName} (Total Rp ${result.totalAmount})'),
-          behavior: SnackBarBehavior.floating,
-        ),
+      UiFeedback.showSuccess(
+        context,
+        'Struk berhasil dipindai: ${result.merchantName} (Total Rp ${result.totalAmount})',
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result.errorMessage ?? 'Gagal memindai struk.'),
-          backgroundColor: Theme.of(context).colorScheme.error,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      UiFeedback.showError(context, result.errorMessage ?? 'Gagal memindai struk.');
     }
   }
 
@@ -95,13 +77,11 @@ class _CreateSessionScreenState extends ConsumerState<CreateSessionScreen> {
           id: widget.sessionToEdit?.id,
         );
     if (success && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(widget.sessionToEdit != null
-              ? 'Sesi "${_titleController.text}" berhasil diperbarui!'
-              : 'Sesi "${_titleController.text}" berhasil dibuat!'),
-          behavior: SnackBarBehavior.floating,
-        ),
+      UiFeedback.showSuccess(
+        context,
+        widget.sessionToEdit != null
+            ? 'Sesi "${_titleController.text}" berhasil diperbarui!'
+            : 'Sesi "${_titleController.text}" berhasil dibuat!',
       );
       Navigator.of(context).pop();
     }
