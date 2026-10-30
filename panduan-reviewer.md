@@ -239,4 +239,23 @@ flutter test
 | **Cek apakah 3 advance fitur sudah diimplementasikan dalam kode, dan bekerja secara benar?** | **Sudah diimplementasikan dan bekerja dengan benar (100% teruji).**<br>1. **Kamera**: [`CameraScanService`](file:///c:/Users/nomhn/AppData/Local/GitHubDesktop/app-3.5.8/chiscan/apps/mobile/lib/services/camera_scan_service.dart).<br>2. **Lokasi**: [`LocationService`](file:///c:/Users/nomhn/AppData/Local/GitHubDesktop/app-3.5.8/chiscan/apps/mobile/lib/services/location_service.dart).<br>3. **Notifikasi**: [`NotificationService`](file:///c:/Users/nomhn/AppData/Local/GitHubDesktop/app-3.5.8/chiscan/apps/mobile/lib/services/notification_service.dart).<br>Ketiganya lulus automated test di [`p7_mvp_advanced_features_test.dart`](file:///c:/Users/nomhn/AppData/Local/GitHubDesktop/app-3.5.8/chiscan/apps/mobile/test/widget/p7_mvp_advanced_features_test.dart). |
 | **Apakah kode bebas dari issue/lint?** | **Ya.** Struktur clean architecture, dependency injection Riverpod, dan `flutter analyze` bebas dari issue. |
 
+---
+
+## 9. Refactor & Pemisahan Tanggung Jawab (Separation of Concerns)
+
+Sesuai panduan arsitektur bersih dan kaidah Single Responsibility Principle (SRP), modul Profil Pengguna (`UserProfile`) dibangun dengan memisahkan tanggung jawab secara ketat menjadi fungsi-fungsi kecil terfokus tanpa duplikasi kode:
+
+| Komponen | File Implementasi | Tanggung Jawab Tunggal |
+|---|---|---|
+| **ProfileForm (UI)** | [`apps/mobile/lib/widgets/profile_form.dart`](file:///c:/Users/nomhn/AppData/Local/GitHubDesktop/app-3.5.8/chiscan/apps/mobile/lib/widgets/profile_form.dart)<br>[`apps/mobile/lib/screens/profile_screen.dart`](file:///c:/Users/nomhn/AppData/Local/GitHubDesktop/app-3.5.8/chiscan/apps/mobile/lib/screens/profile_screen.dart) | **Fokus pada INPUT dan STATUS UI:**<br>• `_buildAvatarHeader()`: Menampilkan inisial foto profil.<br>• `_buildNameField()`, `_buildEmailField()`, dsb: Kontrol input teks.<br>• `_buildStatusFeedback()`: Menampilkan status error / loading.<br>• `_buildSubmitButton()`: Mengelola tombol submit dan spinner loading. |
+| **Validation (Aturan Input)** | [`apps/mobile/lib/validators/profile_validator.dart`](file:///c:/Users/nomhn/AppData/Local/GitHubDesktop/app-3.5.8/chiscan/apps/mobile/lib/validators/profile_validator.dart) | **Fokus murni pada ATURAN INPUT:**<br>• `validateProfileName()`: Nama minimal 3 karakter.<br>• `validateProfileEmail()`: Format regex email valid.<br>• `validateProfilePhone()`: Format angka murni minimal 10 digit.<br>• `validateProfileAccountNumber()`: Nomor rekening minimal 5 digit.<br>• `validateUserProfile()`: Evaluasi agregat. |
+| **ProfileRepository (Request API)** | [`apps/mobile/lib/repositories/profile_repository.dart`](file:///c:/Users/nomhn/AppData/Local/GitHubDesktop/app-3.5.8/chiscan/apps/mobile/lib/repositories/profile_repository.dart) | **Fokus murni pada REQUEST API & DATA ACCESS:**<br>• `ApiProfileRepository`: Melakukan HTTP `GET` & `PUT /api/profile` via `package:http`.<br>• `_processResponse()` & `_parseJsonBody()`: Parsing JSON dan pemetaan `ApiException`.<br>• `LocalProfileRepository`: Penyimpanan lokal via `shared_preferences`.<br>• `InMemoryProfileRepository`: Mock repository untuk unit test. |
+
+### 4 Langkah Siklus TDD & Refactor yang Dijalankan:
+1. **Tes Awal Lulus**: Menyiapkan skenario pengujian awal untuk model `UserProfile` dan aturan validasi dasar.
+2. **Pindahkan Satu Bagian**: Memisahkan satu per satu tanggung jawab dari file monolitik ke file modular (`profile_validator.dart`, lalu `profile_repository.dart`, lalu `profile_form.dart`).
+3. **Tes Ulang**: Menjalankan kembali seluruh test suite (unit test validasi, unit test repository, dan widget test form) untuk memastikan tidak ada efek samping atau regresi (*regression-free*).
+4. **Commit**: Mengarsipkan perubahan ke git repository dengan deskripsi commit yang rapi dan terstruktur.
+
+
 

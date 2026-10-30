@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import '../models/bill_session.dart';
 import '../screens/create_session_screen.dart';
 import '../screens/dashboard_screen.dart';
+import '../screens/profile_screen.dart';
 import '../screens/session_detail_screen.dart';
 
 class AppRoutes {
   static const String dashboard = '/';
   static const String createSession = '/create-session';
   static const String sessionDetail = '/session-detail';
+  static const String profile = '/profile';
 
   static Route<dynamic>? onGenerateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -26,6 +28,11 @@ class AppRoutes {
         final session = settings.arguments as BillSession;
         return MaterialPageRoute<void>(
           builder: (_) => SessionDetailScreen(session: session),
+          settings: settings,
+        );
+      case profile:
+        return MaterialPageRoute<void>(
+          builder: (_) => const ProfileScreen(),
           settings: settings,
         );
       default:

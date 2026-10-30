@@ -6,6 +6,7 @@ import '../providers/advanced_features_provider.dart';
 import '../providers/bill_session_provider.dart';
 import '../widgets/adaptive_container.dart';
 import 'create_session_screen.dart';
+import 'profile_screen.dart';
 import 'session_detail_screen.dart';
 
 class DashboardScreen extends ConsumerWidget {
@@ -68,6 +69,14 @@ class DashboardScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Sesi Tagihan'),
         actions: [
+          IconButton(
+            key: const Key('open-profile-button'),
+            icon: const Icon(Icons.account_circle_outlined),
+            tooltip: 'Profil Pengguna',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const ProfileScreen()),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             tooltip: 'Muat ulang data',
