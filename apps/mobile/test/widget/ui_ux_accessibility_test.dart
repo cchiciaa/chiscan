@@ -66,11 +66,11 @@ void main() {
 
       // Pastikan field judul dan host memiliki scrollPadding untuk keyboard safety
       final titleFieldFinder = find.byKey(const Key('session-title-field'));
-      final titleField = tester.widget<TextFormField>(titleFieldFinder);
+      final titleField = tester.widget<TextField>(find.descendant(of: titleFieldFinder, matching: find.byType(TextField)));
       expect(titleField.scrollPadding.bottom, greaterThanOrEqualTo(100));
 
       final hostFieldFinder = find.byKey(const Key('host-name-field'));
-      final hostField = tester.widget<TextFormField>(hostFieldFinder);
+      final hostField = tester.widget<TextField>(find.descendant(of: hostFieldFinder, matching: find.byType(TextField)));
       expect(hostField.scrollPadding.bottom, greaterThanOrEqualTo(100));
     });
   });

@@ -123,6 +123,7 @@ Silakan transfer ke rekening host. Terima kasih!
                         const SizedBox(height: 4),
                         Text(
                           'Rp $_grandTotal',
+                          key: const Key('session-detail-total-amount'),
                           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                                 fontWeight: FontWeight.bold,
                                 color: Theme.of(context).colorScheme.onPrimaryContainer,

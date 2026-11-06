@@ -238,7 +238,7 @@ class _ProfileFormState extends ConsumerState<ProfileForm> {
             onFieldSubmitted: (_) => _handleFormSubmit(),
             decoration: const InputDecoration(
               labelText: 'Nomor Rekening',
-              hintText: '8830123456',
+              hintText: 'Misal: 8830123456',
               helperText: 'Tujuan transfer iuran',
               border: OutlineInputBorder(),
             ),

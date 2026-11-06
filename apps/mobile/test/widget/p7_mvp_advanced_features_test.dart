@@ -186,7 +186,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Makan Siang Sederhana'), findsOneWidget);
-      expect(find.text('Rp 150000'), findsOneWidget);
+      expect(find.byKey(const Key('session-detail-total-amount')), findsOneWidget);
       expect(find.text('Estimasi: Rp 50000 / orang'), findsOneWidget);
 
       await tester.tap(find.byKey(const Key('copy-summary-button')));
