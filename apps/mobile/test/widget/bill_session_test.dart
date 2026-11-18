@@ -34,7 +34,12 @@ class FakeBillSessionRepository implements BillSessionRepository {
   }
 
   @override
-  Future<BillSession> createSession({required String title, required String hostName}) async {
+  Future<BillSession> createSession({
+    required String title,
+    required String hostName,
+    List<BillParticipant>? participants,
+    List<BillItem>? items,
+  }) async {
     createCount++;
     if (submitCompleter != null) return submitCompleter!.future;
     if (failure != null) throw failure!;
@@ -42,8 +47,10 @@ class FakeBillSessionRepository implements BillSessionRepository {
       id: 'new-$createCount',
       title: title,
       hostName: hostName,
-      grandTotalAmount: 0,
-      participantCount: 0,
+      grandTotalAmount: (items ?? const []).fold<int>(0, (sum, item) => sum + item.totalPrice),
+      participantCount: participants?.length ?? 0,
+      participants: participants ?? const [],
+      items: items ?? const [],
     );
     sessions = [session, ...sessions];
     return session;
@@ -54,12 +61,23 @@ class FakeBillSessionRepository implements BillSessionRepository {
     required String id,
     required String title,
     required String hostName,
+    List<BillParticipant>? participants,
+    List<BillItem>? items,
   }) async {
     updateCount++;
     if (failure != null) throw failure!;
     final index = sessions.indexWhere((s) => s.id == id);
     if (index == -1) throw Exception('Sesi tidak ditemukan.');
-    final updated = sessions[index].copyWith(title: title, hostName: hostName);
+    final savedParticipants = participants ?? sessions[index].participants;
+    final savedItems = items ?? sessions[index].items;
+    final updated = sessions[index].copyWith(
+      title: title,
+      hostName: hostName,
+      participants: savedParticipants,
+      items: savedItems,
+      participantCount: savedParticipants.length,
+      grandTotalAmount: savedItems.fold<int>(0, (sum, item) => sum + item.totalPrice),
+    );
     sessions = [...sessions]..[index] = updated;
     return updated;
   }
@@ -80,6 +98,34 @@ Widget wrap(Widget child, BillSessionRepository repository) {
 }
 
 void main() {
+  test('Pembagian item dan pembulatan selalu merekonsiliasi total', () {
+    const participants = [
+      BillParticipant(id: 'p1', name: 'Ahmad'),
+      BillParticipant(id: 'p2', name: 'Siti'),
+      BillParticipant(id: 'p3', name: 'Budi'),
+    ];
+    const session = BillSession(
+      id: 'allocation',
+      title: 'Makan',
+      hostName: 'Ahmad',
+      grandTotalAmount: 100,
+      participantCount: 3,
+      participants: participants,
+      items: [
+        BillItem(
+          id: 'i1',
+          name: 'Item bersama',
+          price: 100,
+          quantity: 1,
+        ),
+      ],
+    );
+
+    final shares = session.calculateShares();
+    expect(shares.fold<int>(0, (sum, share) => sum + share.amount), 100);
+    expect(shares.map((share) => share.amount).toSet().length, 2);
+  });
+
   testWidgets('menampilkan initial loading', (tester) async {
     final completer = Completer<List<BillSession>>();
     final repository = FakeBillSessionRepository(fetchCompleter: completer);
@@ -136,6 +182,7 @@ void main() {
   testWidgets('menampilkan validasi input form', (tester) async {
     await tester.pumpWidget(wrap(const CreateSessionScreen(), FakeBillSessionRepository()));
     await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const Key('create-session-button')));
     await tester.tap(find.byKey(const Key('create-session-button')));
     await tester.pumpAndSettle();
     expect(find.text('Nama sesi wajib diisi.'), findsOneWidget);
@@ -148,6 +195,7 @@ void main() {
     await tester.pumpWidget(wrap(const CreateSessionScreen(), repository));
     await tester.enterText(find.byKey(const Key('session-title-field')), 'Makan Bersama');
     await tester.enterText(find.byKey(const Key('host-name-field')), 'Sari');
+    await tester.ensureVisible(find.byKey(const Key('create-session-button')));
     await tester.tap(find.byKey(const Key('create-session-button')));
     await tester.pump();
     await tester.tap(find.byKey(const Key('create-session-button')));
@@ -185,6 +233,7 @@ void main() {
 
     expect(find.text('Ubah Sesi Tagihan'), findsOneWidget);
     await tester.enterText(find.byKey(const Key('session-title-field')), 'Makan Siang Baru');
+    await tester.ensureVisible(find.byKey(const Key('create-session-button')));
     await tester.tap(find.byKey(const Key('create-session-button')));
     await tester.pumpAndSettle();
 
@@ -226,7 +275,7 @@ void main() {
 
     final repoFirstRun = LocalBillSessionRepository(storage);
     final initialList = await repoFirstRun.fetchSessions();
-    expect(initialList.isNotEmpty, true);
+    expect(initialList, isEmpty);
 
     final created = await repoFirstRun.createSession(
       title: 'Nasi Padang Berkah',

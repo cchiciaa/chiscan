@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/bill_session.dart';
-import '../providers/advanced_features_provider.dart';
 import '../providers/bill_session_provider.dart';
 import '../utils/ui_feedback.dart';
 import '../validators/bill_session_validator.dart';
@@ -21,60 +20,85 @@ class _CreateSessionScreenState extends ConsumerState<CreateSessionScreen> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _titleController;
   late final TextEditingController _hostController;
-  bool _isDetectingLocation = false;
-  bool _isScanningReceipt = false;
+  late final TextEditingController _participantsController;
+  late final TextEditingController _itemNameController;
+  late final TextEditingController _itemPriceController;
+  late final TextEditingController _itemQuantityController;
+  late List<BillItem> _items;
 
   @override
   void initState() {
     super.initState();
     _titleController = TextEditingController(text: widget.sessionToEdit?.title ?? '');
     _hostController = TextEditingController(text: widget.sessionToEdit?.hostName ?? '');
+    _participantsController = TextEditingController(
+      text: widget.sessionToEdit?.participants
+              .map((participant) => participant.name)
+              .join(', ') ??
+          '',
+    );
+    _itemNameController = TextEditingController();
+    _itemPriceController = TextEditingController();
+    _itemQuantityController = TextEditingController(text: '1');
+    _items = List<BillItem>.from(widget.sessionToEdit?.items ?? const []);
   }
 
   @override
   void dispose() {
     _titleController.dispose();
     _hostController.dispose();
+    _participantsController.dispose();
+    _itemNameController.dispose();
+    _itemPriceController.dispose();
+    _itemQuantityController.dispose();
     super.dispose();
   }
 
-  Future<void> _handleDetectLocation() async {
-    setState(() => _isDetectingLocation = true);
-    final result = await ref.read(locationServiceProvider).detectCurrentRestaurantLocation();
-    if (!mounted) return;
-    setState(() => _isDetectingLocation = false);
-
-    if (result.isSuccess && result.location != null) {
-      _titleController.text = result.location!.name;
-      UiFeedback.showSuccess(context, 'Lokasi terdeteksi: ${result.location!.name}');
-    } else {
-      UiFeedback.showError(context, result.errorMessage ?? 'Gagal mendeteksi lokasi.');
+  void _addItem() {
+    final name = _itemNameController.text.trim();
+    final price = int.tryParse(_itemPriceController.text.trim()) ?? 0;
+    final quantity = int.tryParse(_itemQuantityController.text.trim()) ?? 0;
+    if (name.isEmpty || price <= 0 || quantity <= 0) {
+      UiFeedback.showError(context, 'Nama item, harga, dan jumlah harus valid.');
+      return;
     }
-  }
-
-  Future<void> _handleScanReceipt() async {
-    setState(() => _isScanningReceipt = true);
-    final result = await ref.read(cameraScanServiceProvider).captureAndScanReceipt();
-    if (!mounted) return;
-    setState(() => _isScanningReceipt = false);
-
-    if (result.isSuccess && result.merchantName != null) {
-      _titleController.text = result.merchantName!;
-      UiFeedback.showSuccess(
-        context,
-        'Struk berhasil dipindai: ${result.merchantName} (Total Rp ${result.totalAmount})',
-      );
-    } else {
-      UiFeedback.showError(context, result.errorMessage ?? 'Gagal memindai struk.');
-    }
+    setState(() {
+      _items = [
+        ..._items,
+        BillItem(
+          id: 'item-${DateTime.now().microsecondsSinceEpoch}',
+          name: name,
+          price: price,
+          quantity: quantity,
+        ),
+      ];
+      _itemNameController.clear();
+      _itemPriceController.clear();
+      _itemQuantityController.text = '1';
+    });
   }
 
   Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
+    final names = _participantsController.text
+        .split(',')
+        .map((name) => name.trim())
+        .where((name) => name.isNotEmpty)
+        .toSet()
+        .toList();
+    if (!names.contains(_hostController.text.trim()) && _hostController.text.trim().isNotEmpty) {
+      names.insert(0, _hostController.text.trim());
+    }
+    final participants = List<BillParticipant>.generate(
+      names.length,
+      (index) => BillParticipant(id: 'p-$index', name: names[index]),
+    );
     final success = await ref.read(createSessionProvider.notifier).submit(
           title: _titleController.text,
           hostName: _hostController.text,
           id: widget.sessionToEdit?.id,
+          participants: participants,
+          items: _items,
         );
     if (success && mounted) {
       UiFeedback.showSuccess(
@@ -108,92 +132,15 @@ class _CreateSessionScreenState extends ConsumerState<CreateSessionScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
                 children: [
                   Semantics(
-                    label: 'Fitur otomatisasi pendeteksian data',
-                    child: Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        Semantics(
-                          button: true,
-                          label: 'Pindai struk belanja dengan kamera',
-                          child: ActionChip(
-                            key: const Key('scan-receipt-button'),
-                            avatar: _isScanningReceipt
-                                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                                : const Icon(Icons.camera_alt, size: 18),
-                            label: const Text('Pindai Struk (Kamera)'),
-                            tooltip: 'Pindai struk belanja dengan kamera perangkat',
-                            onPressed: _isScanningReceipt || _isDetectingLocation || submitting ? null : _handleScanReceipt,
-                          ),
-                        ),
-                        Semantics(
-                          button: true,
-                          label: 'Deteksi restoran terdekat melalui GPS',
-                          child: ActionChip(
-                            key: const Key('detect-location-button'),
-                            avatar: _isDetectingLocation
-                                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                                : const Icon(Icons.my_location, size: 18),
-                            label: const Text('Deteksi Lokasi (GPS)'),
-                            tooltip: 'Deteksi restoran di sekitar posisi GPS Anda',
-                            onPressed: _isDetectingLocation || _isScanningReceipt || submitting ? null : _handleDetectLocation,
-                          ),
-                        ),
-                      ],
+                    label: 'Input data dilakukan secara manual',
+                    child: const Card(
+                      child: ListTile(
+                        leading: Icon(Icons.edit_outlined),
+                        title: Text('Input manual'),
+                        subtitle: Text('Scan kamera dan GPS belum diaktifkan; nama, peserta, dan item harus dimasukkan manual.'),
+                      ),
                     ),
                   ),
-                  if (_isScanningReceipt) ...[
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.5),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
-                          const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              'Sedang membuka kamera dan menganalisis struk...',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Theme.of(context).colorScheme.onPrimaryContainer,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                  if (_isDetectingLocation) ...[
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.secondaryContainer.withOpacity(0.5),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
-                          const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              'Sedang menghubungkan ke GPS dan mencari nama restoran...',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Theme.of(context).colorScheme.onSecondaryContainer,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
                   const SizedBox(height: 20),
                   TextFormField(
                     key: const Key('session-title-field'),
@@ -225,6 +172,96 @@ class _CreateSessionScreenState extends ConsumerState<CreateSessionScreen> {
                     ),
                     validator: (value) => validateBillSession(title: 'valid', hostName: value ?? '').hostNameError,
                   ),
+                  const SizedBox(height: 18),
+                  Semantics(
+                    button: true,
+                    label: isEditing ? 'Perbarui sesi tagihan' : 'Simpan sesi tagihan',
+                    child: SizedBox(
+                      height: 48,
+                      child: FilledButton(
+                        key: const Key('create-session-button'),
+                        onPressed: submitting ? null : _submit,
+                        child: submitting
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                              )
+                            : Text(isEditing ? 'Perbarui Sesi' : 'Simpan Sesi'),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  TextFormField(
+                    key: const Key('session-participants-field'),
+                    controller: _participantsController,
+                    decoration: const InputDecoration(
+                      labelText: 'Nama peserta (dipisahkan koma)',
+                      hintText: 'Contoh: Ahmad, Siti, Budi',
+                      prefixIcon: Icon(Icons.group_outlined),
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  Text('Item Pesanan', style: Theme.of(context).textTheme.titleMedium),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _itemNameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Nama item',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _itemPriceController,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            labelText: 'Harga satuan',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      SizedBox(
+                        width: 110,
+                        child: TextField(
+                          controller: _itemQuantityController,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            labelText: 'Jumlah',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    onPressed: _addItem,
+                    icon: const Icon(Icons.add),
+                    label: const Text('Tambah Item'),
+                  ),
+                  if (_items.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    ..._items.map(
+                      (item) => ListTile(
+                        dense: true,
+                        title: Text(item.name),
+                        subtitle: Text('${item.quantity}x @ Rp ${item.price}'),
+                        trailing: IconButton(
+                          tooltip: 'Hapus item',
+                          icon: const Icon(Icons.delete_outline),
+                          onPressed: () => setState(
+                            () => _items = _items.where((current) => current.id != item.id).toList(),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                   if (submitError != null) ...[
                     const SizedBox(height: 16),
                     Container(
@@ -250,25 +287,6 @@ class _CreateSessionScreenState extends ConsumerState<CreateSessionScreen> {
                       ),
                     ),
                   ],
-                  const SizedBox(height: 28),
-                  Semantics(
-                    button: true,
-                    label: isEditing ? 'Perbarui sesi tagihan' : 'Simpan sesi tagihan',
-                    child: SizedBox(
-                      height: 48,
-                      child: FilledButton(
-                        key: const Key('create-session-button'),
-                        onPressed: submitting ? null : _submit,
-                        child: submitting
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                              )
-                            : Text(isEditing ? 'Perbarui Sesi' : 'Simpan Sesi'),
-                      ),
-                    ),
-                  ),
                   if (submitting) ...[
                     const SizedBox(height: 12),
                     const Center(

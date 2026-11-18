@@ -5,8 +5,19 @@ import '../services/bill_session_api_client.dart';
 
 abstract interface class BillSessionRepository {
   Future<List<BillSession>> fetchSessions();
-  Future<BillSession> createSession({required String title, required String hostName});
-  Future<BillSession> updateSession({required String id, required String title, required String hostName});
+  Future<BillSession> createSession({
+    required String title,
+    required String hostName,
+    List<BillParticipant>? participants,
+    List<BillItem>? items,
+  });
+  Future<BillSession> updateSession({
+    required String id,
+    required String title,
+    required String hostName,
+    List<BillParticipant>? participants,
+    List<BillItem>? items,
+  });
   Future<void> deleteSession(String id);
 }
 
@@ -19,23 +30,13 @@ class LocalBillSessionRepository implements BillSessionRepository {
   Future<SharedPreferences> get _storage async =>
       _preferences ??= await SharedPreferences.getInstance();
 
-  static const List<BillSession> _defaultSeed = [
-    BillSession(
-      id: 'demo-1',
-      title: 'Makan malam Jumat',
-      hostName: 'Nadia',
-      grandTotalAmount: 285000,
-      participantCount: 4,
-    ),
-  ];
-
   @override
   Future<List<BillSession>> fetchSessions() async {
     final prefs = await _storage;
     final jsonString = prefs.getString(storageKey);
     if (jsonString == null) {
-      await _saveSessions(prefs, _defaultSeed);
-      return _defaultSeed;
+      await _saveSessions(prefs, const []);
+      return const [];
     }
     try {
       final List<dynamic> decoded = jsonDecode(jsonString) as List<dynamic>;
@@ -43,20 +44,30 @@ class LocalBillSessionRepository implements BillSessionRepository {
           .map((item) => BillSession.fromJson(item as Map<String, dynamic>))
           .toList();
     } catch (_) {
-      return _defaultSeed;
+      return const [];
     }
   }
 
   @override
-  Future<BillSession> createSession({required String title, required String hostName}) async {
+  Future<BillSession> createSession({
+    required String title,
+    required String hostName,
+    List<BillParticipant>? participants,
+    List<BillItem>? items,
+  }) async {
     final prefs = await _storage;
     final sessions = (await fetchSessions()).toList();
+    final savedParticipants = participants ?? const [];
+    final savedItems = items ?? const [];
+    final subtotal = savedItems.fold<int>(0, (sum, item) => sum + item.totalPrice);
     final newSession = BillSession(
       id: DateTime.now().microsecondsSinceEpoch.toString(),
       title: title,
       hostName: hostName,
-      grandTotalAmount: 0,
-      participantCount: 0,
+      grandTotalAmount: subtotal,
+      participantCount: savedParticipants.length,
+      participants: savedParticipants,
+      items: savedItems,
     );
     sessions.insert(0, newSession);
     await _saveSessions(prefs, sessions);
@@ -68,6 +79,8 @@ class LocalBillSessionRepository implements BillSessionRepository {
     required String id,
     required String title,
     required String hostName,
+    List<BillParticipant>? participants,
+    List<BillItem>? items,
   }) async {
     final prefs = await _storage;
     final sessions = (await fetchSessions()).toList();
@@ -75,7 +88,19 @@ class LocalBillSessionRepository implements BillSessionRepository {
     if (index == -1) {
       throw Exception('Sesi tidak ditemukan.');
     }
-    final updated = sessions[index].copyWith(title: title, hostName: hostName);
+    final savedParticipants = participants ?? sessions[index].participants;
+    final savedItems = items ?? sessions[index].items;
+    final updated = sessions[index].copyWith(
+      title: title,
+      hostName: hostName,
+      participants: savedParticipants,
+      items: savedItems,
+      participantCount: savedParticipants.length,
+      grandTotalAmount: savedItems.fold<int>(
+        0,
+        (sum, item) => sum + item.totalPrice,
+      ),
+    );
     sessions[index] = updated;
     await _saveSessions(prefs, sessions);
     return updated;
@@ -97,16 +122,7 @@ class LocalBillSessionRepository implements BillSessionRepository {
 
 class InMemoryBillSessionRepository implements BillSessionRepository {
   InMemoryBillSessionRepository({List<BillSession>? initialSessions})
-      : _sessions = initialSessions ??
-            [
-              const BillSession(
-                id: 'demo-1',
-                title: 'Makan malam Jumat',
-                hostName: 'Nadia',
-                grandTotalAmount: 285000,
-                participantCount: 4,
-              ),
-            ];
+      : _sessions = initialSessions ?? [];
 
   final List<BillSession> _sessions;
 
@@ -114,13 +130,23 @@ class InMemoryBillSessionRepository implements BillSessionRepository {
   Future<List<BillSession>> fetchSessions() async => List.unmodifiable(_sessions);
 
   @override
-  Future<BillSession> createSession({required String title, required String hostName}) async {
+  Future<BillSession> createSession({
+    required String title,
+    required String hostName,
+    List<BillParticipant>? participants,
+    List<BillItem>? items,
+  }) async {
+    final savedParticipants = participants ?? const [];
+    final savedItems = items ?? const [];
+    final subtotal = savedItems.fold<int>(0, (sum, item) => sum + item.totalPrice);
     final session = BillSession(
       id: DateTime.now().microsecondsSinceEpoch.toString(),
       title: title,
       hostName: hostName,
-      grandTotalAmount: 0,
-      participantCount: 0,
+      grandTotalAmount: subtotal,
+      participantCount: savedParticipants.length,
+      participants: savedParticipants,
+      items: savedItems,
     );
     _sessions.insert(0, session);
     return session;
@@ -131,10 +157,24 @@ class InMemoryBillSessionRepository implements BillSessionRepository {
     required String id,
     required String title,
     required String hostName,
+    List<BillParticipant>? participants,
+    List<BillItem>? items,
   }) async {
     final index = _sessions.indexWhere((s) => s.id == id);
     if (index == -1) throw Exception('Sesi tidak ditemukan.');
-    final updated = _sessions[index].copyWith(title: title, hostName: hostName);
+    final savedParticipants = participants ?? _sessions[index].participants;
+    final savedItems = items ?? _sessions[index].items;
+    final updated = _sessions[index].copyWith(
+      title: title,
+      hostName: hostName,
+      participants: savedParticipants,
+      items: savedItems,
+      participantCount: savedParticipants.length,
+      grandTotalAmount: savedItems.fold<int>(
+        0,
+        (sum, item) => sum + item.totalPrice,
+      ),
+    );
     _sessions[index] = updated;
     return updated;
   }
@@ -155,16 +195,34 @@ class ApiBillSessionRepository implements BillSessionRepository {
   Future<List<BillSession>> fetchSessions() => _apiClient.getSessions();
 
   @override
-  Future<BillSession> createSession({required String title, required String hostName}) =>
-      _apiClient.createSession(title: title, hostName: hostName);
+  Future<BillSession> createSession({
+    required String title,
+    required String hostName,
+    List<BillParticipant>? participants,
+    List<BillItem>? items,
+  }) =>
+      _apiClient.createSession(
+        title: title,
+        hostName: hostName,
+        participants: participants,
+        items: items,
+      );
 
   @override
   Future<BillSession> updateSession({
     required String id,
     required String title,
     required String hostName,
+    List<BillParticipant>? participants,
+    List<BillItem>? items,
   }) =>
-      _apiClient.updateSession(id: id, title: title, hostName: hostName);
+      _apiClient.updateSession(
+        id: id,
+        title: title,
+        hostName: hostName,
+        participants: participants,
+        items: items,
+      );
 
   @override
   Future<void> deleteSession(String id) => _apiClient.deleteSession(id);

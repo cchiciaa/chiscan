@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/bill_session.dart';
-import '../providers/advanced_features_provider.dart';
 import '../providers/bill_session_provider.dart';
 import '../widgets/adaptive_container.dart';
 import 'create_session_screen.dart';
@@ -187,28 +187,23 @@ class DashboardScreen extends ConsumerWidget {
                                     icon: const Icon(Icons.notifications_active_outlined, size: 20, color: Colors.teal),
                                     tooltip: 'Kirim Pengingat',
                                     onPressed: () async {
-                                      final res = await ref.read(notificationServiceProvider).sendBillReminder(
-                                            sessionTitle: session.title,
-                                            totalAmount: session.grandTotalAmount,
-                                            participantCount: session.participantCount,
-                                          );
+                                      final reminder = '''
+🧾 Pengingat Tagihan: ${session.title}
+Host: ${session.hostName}
+Total: Rp ${session.calculatedGrandTotal}
+Peserta: ${session.participantCount} orang
+Silakan transfer ke rekening host.
+''';
+                                      await Clipboard.setData(ClipboardData(text: reminder));
                                       if (context.mounted) {
-                                        if (res.isSuccess) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(
-                                              content: Text('Notifikasi pengingat terkirim untuk "${session.title}".'),
-                                              behavior: SnackBarBehavior.floating,
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              'Pengingat "${session.title}" disalin. Tempelkan ke aplikasi pesan.',
                                             ),
-                                          );
-                                        } else {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(
-                                              content: Text(res.errorMessage ?? 'Gagal mengirim notifikasi.'),
-                                              backgroundColor: Theme.of(context).colorScheme.error,
-                                              behavior: SnackBarBehavior.floating,
-                                            ),
-                                          );
-                                        }
+                                            behavior: SnackBarBehavior.floating,
+                                          ),
+                                        );
                                       }
                                     },
                                   ),

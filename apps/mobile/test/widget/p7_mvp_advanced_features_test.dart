@@ -31,77 +31,28 @@ void main() {
     );
   }
 
-  group('P7 Advanced Features - Kamera (Scan Struk)', () {
-    testWidgets('1. Kamera Sukses - memindai struk dan mengisi otomatis nama tempat', (tester) async {
-      final cameraService = CameraScanService(initialPermission: CameraPermissionStatus.granted);
-
+  group('P7 Advanced Features - Input Manual', () {
+    testWidgets('1. Kamera tidak menampilkan data simulasi', (tester) async {
       await tester.pumpWidget(
         buildTestScope(
           child: const CreateSessionScreen(),
-          cameraService: cameraService,
         ),
       );
       await tester.pumpAndSettle();
-
-      await tester.tap(find.byKey(const Key('scan-receipt-button')));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Kopi Kenangan Senopati'), findsOneWidget);
-      expect(find.textContaining('Struk berhasil dipindai'), findsOneWidget);
+      expect(find.text('Input manual'), findsOneWidget);
+      expect(find.textContaining('Scan kamera dan GPS belum diaktifkan'), findsOneWidget);
+      expect(find.byKey(const Key('scan-receipt-button')), findsNothing);
     });
 
-    testWidgets('2. Kamera Izin Ditolak - menampilkan pesan error izin', (tester) async {
-      final cameraService = CameraScanService(initialPermission: CameraPermissionStatus.denied);
-
+    testWidgets('2. Lokasi tidak menampilkan data simulasi', (tester) async {
       await tester.pumpWidget(
         buildTestScope(
           child: const CreateSessionScreen(),
-          cameraService: cameraService,
         ),
       );
       await tester.pumpAndSettle();
-
-      await tester.tap(find.byKey(const Key('scan-receipt-button')));
-      await tester.pumpAndSettle();
-
-      expect(find.textContaining('Izin kamera ditolak'), findsOneWidget);
-    });
-  });
-
-  group('P7 Advanced Features - Lokasi (GPS Restoran Otomatis)', () {
-    testWidgets('3. Lokasi Sukses - mendeteksi GPS dan mengisi nama restoran otomatis', (tester) async {
-      final locationService = LocationService(initialPermission: LocationPermissionStatus.granted);
-
-      await tester.pumpWidget(
-        buildTestScope(
-          child: const CreateSessionScreen(),
-          locationService: locationService,
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.byKey(const Key('detect-location-button')));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Sederhana Bintaro Sektor 9'), findsOneWidget);
-      expect(find.textContaining('Lokasi terdeteksi'), findsOneWidget);
-    });
-
-    testWidgets('4. Lokasi Izin Ditolak - menampilkan pesan izin lokasi ditolak', (tester) async {
-      final locationService = LocationService(initialPermission: LocationPermissionStatus.denied);
-
-      await tester.pumpWidget(
-        buildTestScope(
-          child: const CreateSessionScreen(),
-          locationService: locationService,
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.byKey(const Key('detect-location-button')));
-      await tester.pumpAndSettle();
-
-      expect(find.textContaining('Izin lokasi perangkat tidak diizinkan'), findsOneWidget);
+      expect(find.textContaining('nama, peserta, dan item harus dimasukkan manual'), findsOneWidget);
+      expect(find.byKey(const Key('detect-location-button')), findsNothing);
     });
   });
 
@@ -133,12 +84,10 @@ void main() {
       await tester.tap(find.byKey(const Key('notify-session-demo-p7')));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('Notifikasi pengingat terkirim'), findsOneWidget);
-      expect(notificationService.history.length, 1);
-      expect(notificationService.history.first.title, contains('Makan Bareng Tim'));
+      expect(find.textContaining('Pengingat "Makan Bareng Tim" disalin'), findsOneWidget);
     });
 
-    testWidgets('6. Notifikasi Izin Ditolak - menampilkan pesan izin ditolak', (tester) async {
+    testWidgets('6. Pengingat dapat disalin tanpa memerlukan izin notifikasi platform', (tester) async {
       final notificationService = NotificationService(initialPermission: NotificationPermissionStatus.denied);
       final repo = InMemoryBillSessionRepository(
         initialSessions: const [
@@ -164,7 +113,7 @@ void main() {
       await tester.tap(find.byKey(const Key('notify-session-demo-p7')));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('Izin notifikasi tidak diberikan'), findsOneWidget);
+      expect(find.textContaining('Pengingat "Makan Bareng Tim" disalin'), findsOneWidget);
     });
   });
 
@@ -176,6 +125,11 @@ void main() {
         hostName: 'Ahmad',
         grandTotalAmount: 150000,
         participantCount: 3,
+        participants: [
+          BillParticipant(id: 'p1', name: 'Ahmad'),
+          BillParticipant(id: 'p2', name: 'Siti'),
+          BillParticipant(id: 'p3', name: 'Budi'),
+        ],
       );
 
       await tester.pumpWidget(

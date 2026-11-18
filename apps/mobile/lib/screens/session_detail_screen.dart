@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/bill_session.dart';
-import '../providers/advanced_features_provider.dart';
 import '../widgets/adaptive_container.dart';
 
 class SessionDetailScreen extends ConsumerStatefulWidget {
@@ -16,73 +15,39 @@ class SessionDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _SessionDetailScreenState extends ConsumerState<SessionDetailScreen> {
-  late final List<String> _participants;
-  late final List<Map<String, dynamic>> _items;
-  late int _grandTotal;
-
-  @override
-  void initState() {
-    super.initState();
-    _participants = ['Host (${widget.session.hostName})', 'Andi', 'Siti'];
-    _items = [
-      {'name': 'Menu Utama', 'price': 75000, 'qty': 2},
-      {'name': 'Minuman Segar', 'price': 15000, 'qty': 3},
-    ];
-    _grandTotal = widget.session.grandTotalAmount > 0 ? widget.session.grandTotalAmount : 195000;
-  }
+  List<BillParticipant> get _participants => widget.session.participants;
+  List<BillItem> get _items => widget.session.items;
+  int get _grandTotal => widget.session.calculatedGrandTotal;
+  List<BillShare> get _shares => widget.session.calculateShares();
 
   Future<void> _sendNotification() async {
-    final result = await ref.read(notificationServiceProvider).sendBillReminder(
-          sessionTitle: widget.session.title,
-          totalAmount: _grandTotal,
-          participantCount: _participants.length,
-        );
-
+    await Clipboard.setData(ClipboardData(text: _buildReminderText()));
     if (!mounted) return;
-
-    if (result.isSuccess && result.notification != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.check_circle_outline, color: Colors.white, size: 20),
-              const SizedBox(width: 8),
-              Expanded(child: Text('Notifikasi berhasil dikirim: ${result.notification!.title}')),
-            ],
-          ),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.error_outline, color: Colors.white, size: 20),
-              const SizedBox(width: 8),
-              Expanded(child: Text(result.errorMessage ?? 'Gagal mengirim notifikasi.')),
-            ],
-          ),
-          backgroundColor: Theme.of(context).colorScheme.error,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Pengingat tagihan berhasil disalin. Tempelkan ke WhatsApp atau aplikasi pesan.'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
-  void _copySummary() {
-    final perPerson = (_grandTotal / _participants.length).round();
-    final summary = '''
+  String _buildReminderText() {
+    final shares = _shares;
+    final breakdown = shares.isEmpty
+        ? 'Peserta: belum ada data'
+        : shares.map((share) => '- ${share.participant.name}: Rp ${share.amount}').join('\n');
+    return '''
 🧾 *Ringkasan Tagihan: ${widget.session.title}*
 Host: ${widget.session.hostName}
 Total: Rp $_grandTotal
-Peserta (${_participants.length}): ${_participants.join(', ')}
-Tagihan per orang: Rp $perPerson
+$breakdown
 
 Silakan transfer ke rekening host. Terima kasih!
 ''';
+  }
 
-    Clipboard.setData(ClipboardData(text: summary));
+  void _copySummary() {
+    Clipboard.setData(ClipboardData(text: _buildReminderText()));
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Row(
@@ -99,7 +64,10 @@ Silakan transfer ke rekening host. Terima kasih!
 
   @override
   Widget build(BuildContext context) {
-    final perPerson = (_grandTotal / _participants.length).round();
+    final shares = _shares;
+    final perPerson = _participants.isEmpty
+        ? 0
+        : (_grandTotal / _participants.length).round();
 
     return Scaffold(
       appBar: AppBar(title: Text(widget.session.title)),
@@ -179,44 +147,63 @@ Silakan transfer ke rekening host. Terima kasih!
               const SizedBox(height: 28),
               Text('Peserta Tagihan (${_participants.length})', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),
-              ..._participants.map(
-                (p) => Card(
-                  margin: const EdgeInsets.only(bottom: 8),
+              if (_participants.isEmpty)
+                const Card(
                   child: ListTile(
-                    dense: true,
-                    leading: const CircleAvatar(
-                      radius: 16,
-                      child: Icon(Icons.person_outline, size: 18),
-                    ),
-                    title: Text(p, style: const TextStyle(fontWeight: FontWeight.w500)),
-                    trailing: Semantics(
-                      label: p.contains('Host') ? 'Status pembayaran lunas' : 'Status pembayaran menunggu transfer',
-                      child: Chip(
-                        label: Text(p.contains('Host') ? 'PAID' : 'PENDING'),
-                        backgroundColor: p.contains('Host') ? Colors.green.shade100 : Colors.orange.shade100,
+                    leading: Icon(Icons.group_add_outlined),
+                    title: Text('Belum ada peserta'),
+                    subtitle: Text('Tambahkan nama peserta saat membuat atau mengubah sesi.'),
+                  ),
+                )
+              else
+                ...shares.map(
+                  (share) => Card(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    child: ListTile(
+                      dense: true,
+                      leading: const CircleAvatar(
+                        radius: 16,
+                        child: Icon(Icons.person_outline, size: 18),
+                      ),
+                      title: Text(
+                        share.participant.name,
+                        style: const TextStyle(fontWeight: FontWeight.w500),
+                      ),
+                      subtitle: Text('Bagian: Rp ${share.amount}'),
+                      trailing: Chip(
+                        label: const Text('PENDING'),
+                        backgroundColor: Colors.orange.shade100,
                       ),
                     ),
                   ),
                 ),
-              ),
               const SizedBox(height: 20),
               Text('Item Pesanan', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),
-              ..._items.map(
-                (item) => Card(
-                  margin: const EdgeInsets.only(bottom: 8),
+              if (_items.isEmpty)
+                const Card(
                   child: ListTile(
-                    dense: true,
-                    leading: const Icon(Icons.restaurant_menu),
-                    title: Text(item['name'] as String, style: const TextStyle(fontWeight: FontWeight.w500)),
-                    subtitle: Text('${item['qty']}x @ Rp ${item['price']}'),
-                    trailing: Text(
-                      'Rp ${(item['qty'] as int) * (item['price'] as int)}',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    leading: Icon(Icons.receipt_long_outlined),
+                    title: Text('Belum ada item pesanan'),
+                    subtitle: Text('Tambahkan item untuk menghitung pembagian yang akurat.'),
+                  ),
+                )
+              else
+                ..._items.map(
+                  (item) => Card(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    child: ListTile(
+                      dense: true,
+                      leading: const Icon(Icons.restaurant_menu),
+                      title: Text(item.name, style: const TextStyle(fontWeight: FontWeight.w500)),
+                      subtitle: Text('${item.quantity}x @ Rp ${item.price}'),
+                      trailing: Text(
+                        'Rp ${item.totalPrice}',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
                     ),
                   ),
                 ),
-              ),
             ],
           ),
         ),

@@ -55,6 +55,8 @@ class CreateSessionNotifier extends AsyncNotifier<void> {
     required String title,
     required String hostName,
     String? id,
+    List<BillParticipant>? participants,
+    List<BillItem>? items,
   }) async {
     if (state.isLoading) return false;
     state = const AsyncLoading();
@@ -64,11 +66,15 @@ class CreateSessionNotifier extends AsyncNotifier<void> {
           id: id,
           title: title.trim(),
           hostName: hostName.trim(),
+          participants: participants,
+          items: items,
         );
       } else {
         await _repository.createSession(
           title: title.trim(),
           hostName: hostName.trim(),
+          participants: participants,
+          items: items,
         );
       }
       ref.invalidate(billSessionsProvider);

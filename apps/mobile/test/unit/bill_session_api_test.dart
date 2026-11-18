@@ -15,6 +15,11 @@ void main() {
         'hostName': 'Budi Santoso',
         'grandTotalAmount': 150000,
         'participantCount': 3,
+        'participants': <dynamic>[],
+        'items': <dynamic>[],
+        'taxBasisPoints': 0,
+        'serviceBasisPoints': 0,
+        'discountAmount': 0,
       };
 
       final session = BillSession.fromJson(validJson);

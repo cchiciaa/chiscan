@@ -53,6 +53,8 @@ class BillSessionApiClient {
   Future<BillSession> createSession({
     required String title,
     required String hostName,
+    List<BillParticipant>? participants,
+    List<BillItem>? items,
   }) async {
     final response = await _client.post(
       Uri.parse('$baseUrl/sessions'),
@@ -63,6 +65,8 @@ class BillSessionApiClient {
       body: jsonEncode({
         'title': title,
         'hostName': hostName,
+        'participants': participants?.map((participant) => participant.toJson()).toList(),
+        'items': items?.map((item) => item.toJson()).toList(),
       }),
     );
 
@@ -85,6 +89,8 @@ class BillSessionApiClient {
     required String id,
     required String title,
     required String hostName,
+    List<BillParticipant>? participants,
+    List<BillItem>? items,
   }) async {
     final response = await _client.put(
       Uri.parse('$baseUrl/sessions/$id'),
@@ -95,6 +101,8 @@ class BillSessionApiClient {
       body: jsonEncode({
         'title': title,
         'hostName': hostName,
+        'participants': participants?.map((participant) => participant.toJson()).toList(),
+        'items': items?.map((item) => item.toJson()).toList(),
       }),
     );
 

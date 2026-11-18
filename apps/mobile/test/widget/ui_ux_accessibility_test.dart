@@ -80,9 +80,9 @@ void main() {
       await tester.pumpWidget(buildTestApp(child: const CreateSessionScreen()));
       await tester.pumpAndSettle();
 
-      // Cek semantics pada tombol chip kamera dan lokasi
-      expect(find.bySemanticsLabel('Pindai struk belanja dengan kamera'), findsOneWidget);
-      expect(find.bySemanticsLabel('Deteksi restoran terdekat melalui GPS'), findsOneWidget);
+      // Cek bahwa integrasi demo kamera dan GPS tidak ditampilkan sebagai hasil nyata
+      expect(find.text('Input manual'), findsOneWidget);
+      expect(find.textContaining('Scan kamera dan GPS belum diaktifkan'), findsOneWidget);
 
       // Cek hint dan label pada input form
       expect(find.text('Nama tempat atau event'), findsOneWidget);
@@ -92,27 +92,19 @@ void main() {
   });
 
   group('04. Feedback Aksi (Responsivitas Visual Pengguna)', () {
-    testWidgets('04. Feedback aksi - menampilkan status feedback saat memindai dan menyimpan', (tester) async {
-      final cameraService = CameraScanService(initialPermission: CameraPermissionStatus.granted);
-
+    testWidgets('04. Feedback aksi - menambahkan item manual', (tester) async {
       await tester.pumpWidget(
         buildTestApp(
           child: const CreateSessionScreen(),
-          cameraService: cameraService,
         ),
       );
       await tester.pumpAndSettle();
-
-      // Ketuk tombol pindai struk
-      await tester.tap(find.byKey(const Key('scan-receipt-button')));
-      await tester.pump(); // Frame pertama saat proses berjalan
-
-      // Pastikan ada indikator feedback aksi yang sedang berjalan
-      expect(find.textContaining('Sedang membuka kamera'), findsOneWidget);
-
-      // Tunggu hingga selesai
+      await tester.enterText(find.widgetWithText(TextField, 'Nama item'), 'Nasi Goreng');
+      await tester.enterText(find.widgetWithText(TextField, 'Harga satuan'), '25000');
+      await tester.enterText(find.widgetWithText(TextField, 'Jumlah'), '2');
+      await tester.tap(find.text('Tambah Item'));
       await tester.pumpAndSettle();
-      expect(find.textContaining('Struk berhasil dipindai'), findsOneWidget);
+      expect(find.text('Nasi Goreng'), findsOneWidget);
     });
 
     testWidgets('04. Feedback aksi - salin ringkasan memberikan SnackBar feedback visual seketika', (tester) async {

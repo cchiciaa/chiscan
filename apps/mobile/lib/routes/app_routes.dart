@@ -25,14 +25,13 @@ class AppRoutes {
           settings: settings,
         );
       case sessionDetail:
-        final session = (settings.arguments as BillSession?) ??
-            const BillSession(
-              id: 'demo-1',
-              title: 'Makan Malam Senopati',
-              hostName: 'Nadia Pratama',
-              grandTotalAmount: 320000,
-              participantCount: 4,
-            );
+        final session = settings.arguments as BillSession?;
+        if (session == null) {
+          return MaterialPageRoute<void>(
+            builder: (_) => const DashboardScreen(),
+            settings: settings,
+          );
+        }
         return MaterialPageRoute<void>(
           builder: (_) => SessionDetailScreen(session: session),
           settings: settings,
