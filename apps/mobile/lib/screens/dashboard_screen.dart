@@ -186,7 +186,7 @@ class DashboardScreen extends ConsumerWidget {
                                     key: Key('notify-session-${session.id}'),
                                     icon: const Icon(Icons.notifications_active_outlined, size: 20, color: Colors.teal),
                                     tooltip: 'Kirim Pengingat',
-                                    onPressed: () async {
+                                    onPressed: () {
                                       final reminder = '''
 🧾 Pengingat Tagihan: ${session.title}
 Host: ${session.hostName}
@@ -194,7 +194,7 @@ Total: Rp ${session.calculatedGrandTotal}
 Peserta: ${session.participantCount} orang
 Silakan transfer ke rekening host.
 ''';
-                                      await Clipboard.setData(ClipboardData(text: reminder));
+                                      Clipboard.setData(ClipboardData(text: reminder));
                                       if (context.mounted) {
                                         ScaffoldMessenger.of(context).showSnackBar(
                                           SnackBar(

@@ -99,9 +99,12 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      await tester.drag(find.byType(ListView), const Offset(0, -400));
+      await tester.pumpAndSettle();
       await tester.enterText(find.widgetWithText(TextField, 'Nama item'), 'Nasi Goreng');
       await tester.enterText(find.widgetWithText(TextField, 'Harga satuan'), '25000');
       await tester.enterText(find.widgetWithText(TextField, 'Jumlah'), '2');
+      await tester.ensureVisible(find.text('Tambah Item'));
       await tester.tap(find.text('Tambah Item'));
       await tester.pumpAndSettle();
       expect(find.text('Nasi Goreng'), findsOneWidget);
